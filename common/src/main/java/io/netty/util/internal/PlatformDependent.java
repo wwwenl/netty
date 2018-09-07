@@ -29,6 +29,7 @@ import org.jctools.util.Pow2;
 import org.jctools.util.UnsafeAccess;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -128,17 +129,6 @@ public final class PlatformDependent {
             };
         }
 
-        /*
-         * We do not want to log this message if unsafe is explicitly disabled. Do not remove the explicit no unsafe
-         * guard.
-         */
-        if (!hasUnsafe() && !isAndroid() && !PlatformDependent0.isExplicitNoUnsafe()) {
-            logger.info(
-                    "Your platform does not provide complete low-level API for accessing direct buffers reliably. " +
-                    "Unless explicitly requested, heap buffer will always be preferred to avoid potential system " +
-                    "instability.");
-        }
-
         // Here is how the system property is used:
         //
         // * <  0  - Don't use cleaner, and inherit max direct memory from java. In this case the
@@ -175,7 +165,7 @@ public final class PlatformDependent {
 
         MAYBE_SUPER_USER = maybeSuperUser0();
 
-        if (!isAndroid() && hasUnsafe()) {
+        if (!isAndroid()) {
             // only direct to method if we are not running on android.
             // See https://github.com/netty/netty/issues/2604
             if (javaVersion() >= 9) {
@@ -192,6 +182,17 @@ public final class PlatformDependent {
                                   && !SystemPropertyUtil.getBoolean("io.netty.noPreferDirect", false);
         if (logger.isDebugEnabled()) {
             logger.debug("-Dio.netty.noPreferDirect: {}", !DIRECT_BUFFER_PREFERRED);
+        }
+
+        /*
+         * We do not want to log this message if unsafe is explicitly disabled. Do not remove the explicit no unsafe
+         * guard.
+         */
+        if (CLEANER == NOOP && !PlatformDependent0.isExplicitNoUnsafe()) {
+            logger.info(
+                    "Your platform does not provide complete low-level API for accessing direct buffers reliably. " +
+                    "Unless explicitly requested, heap buffer will always be preferred to avoid potential system " +
+                    "instability.");
         }
     }
 
@@ -565,6 +566,14 @@ public final class PlatformDependent {
 
     public static void putLong(byte[] data, int index, long value) {
         PlatformDependent0.putLong(data, index, value);
+    }
+
+    public static void putObject(Object o, long offset, Object x) {
+        PlatformDependent0.putObject(o, offset, x);
+    }
+
+    public static long objectFieldOffset(Field field) {
+        return PlatformDependent0.objectFieldOffset(field);
     }
 
     public static void copyMemory(long srcAddr, long dstAddr, long length) {
